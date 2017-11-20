@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+    <!--<link rel="stylesheet" href="./css/index.css"/>-->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        main {
+            width: 960px;
+            height: 540px;
+            border: 1px solid black;
+            margin: 50px auto 0;
+            padding: 10px;
+            position: relative;
+        }
+
+        main #clock {
+            width: 200px;
+            height: 30px;
+            line-height: 30px;
+            text-align: center;
+            background-color: azure;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+
+        main input {
+            width: 50px;
+            text-align: center;
+        }
+
+        main .bottom {
+            margin-top: 10px;
+        }
+
+        main ul {
+            clear: both;
+        }
+
+        main ul li {
+            width: 30px;
+            height: 30px;
+            background-color: lightsteelblue;
+            border: 1px solid blue;
+            list-style: none;
+            float: left;
+        }
+
+        .top .hide {
+            display: none;
+            color: #ff0000;
+        }
+    </style>
+</head>
+<body>
+<main class="main">
+    <div id="clock">00:00:00</div>
+    <div class="top">
+        想要<input type="text" id="rowsText">*<input type="text" id="colsText"/>的格子&nbsp;&nbsp;&nbsp;<span class="hide">最大15*30个格子</span>
+        <br/>还需要扫<span id="count">0</span>个雷
+    </div>
+    <div class="bottom">
+    </div>
+</main>
+</body>
+<!--<script src="./js/index.js"></script>-->
+<script>
+var bottom = document.querySelector(".bottom");
+window.onload = init(bottom);
+function init(bottom) {
+    for (var i = 0; i < 3; i++) {
+        var ul = document.createElement("ul");
+        ul.setAttribute("id", "ul" + i);
+        bottom.appendChild(ul);
+        for (var j = 0; j < 3; j++) {
+            var li = document.createElement("li");
+            ul.appendChild(li);
+        }
+    }
+    setCount(bottom, 3, 3);
+//        clickLi(bottom,4,4);
+}
+document.addEventListener("keyup", function (e) {
+    var span = document.querySelector(".top span");
+
+    var rowsText = parseInt(document.getElementById("rowsText").value);
+    var colsText = parseInt(document.getElementById("colsText").value);
+    console.log(e.keyCode);
+
+    setWH(rowsText, colsText, span, bottom, e);
+
+}, false);
+
+//设置格子个数的方法
+function setWH(rowsText, colsText, span, bottom, e) {
+    if (rowsText < 0 || colsText < 0) {
+        span.style.display = "block";
+        span.innerHTML = "请输入正整数";
+        return;
+    } else {
+        span.innerHTML = "";
+    }
+    if (rowsText > 15 || colsText > 30) {
+        span.style.display = "block";
+        return;
+    } else {
+        span.style.display = "none";
+    }
+    if (rowsText < 3 && colsText < 3) {
+        span.style.display = "block";
+        span.innerHTML = "最小3*3个格子";
+        return;
+    } else {
+        span.innerHTML = "";
+    }
+    if ((e.keyCode >= 48 && e.keyCode <= 57) || (e.keyCode >= 96 && e.keyCode <= 105)) {
+        //先清空再创建
+        var ul = document.getElementsByTagName("ul");
+        for (var k = 0; k < bottom.children.length; k++) {
+            if (ul.length > 0) {
+                bottom.removeChild(ul[k]);
+            }
+            k--;
+        }
+        //根据要求创建格子
+        for (var i = 0; i < rowsText; i++) {
+            ul = document.createElement("ul");
+            ul.setAttribute("id", "ul" + i);
+            bottom.appendChild(ul);
+            for (var j = 0; j < colsText; j++) {
+                var li = document.createElement("li");
+                ul.appendChild(li);
+            }
+        }
+        //设置地雷
+        setCount(bottom, rowsText, colsText);
+    }
+}
+
+function setCount(bottom, rowsText, colsText) {
+    //设置雷的个数
+    rowsText = rowsText || 0;
+    colsText = colsText || 0;
+    var countTxt = document.querySelector("#count");
+    var count = parseInt(rowsText * colsText / 9);
+    getRandom(bottom, rowsText, colsText, count);
+    countTxt.innerHTML = count;
+
+}
+//获取随机位置
+function getRandom(bottom, rowsText, colsText, count) {
+    var arr1 = [], arr2 = [];
+    var flag = true;
+    while (true) {
+        var n1 = Math.floor(Math.random() * rowsText);
+        var n2 = Math.floor(Math.random() * colsText);
+        for (var j = 0; j < arr1.length; j++) {
+            if (n1 == arr1[j] && n2 == arr2[j]) {
+                flag = false;
+                break;
+            } else {
+                flag = true;
+            }
+        }
+        if (flag) {
+            arr1.push(n1);
+            arr2.push(n2);
+        }
+        if (arr1.length >= count) {
+            break;
+        }
+    }
+    //设置地雷样式
+    /*for (var k = 0; k < arr1.length; k++) {
+
+        bottom.children[arr1[k]].children[arr2[k]].style.backgroundColor = "purple";
+    }*/
+    clickLi(bottom, rowsText, colsText, arr1, arr2, count);
+}
+//点击判断方法
+function clickLi(bottom, rowsText, colsText, arr1, arr2, count) {
+    var flag = true;
+    var flagRed = true;
+    var time = null;
+    var clock = document.getElementById("clock");
+    var flagClock = true;
+
+    for (var i = 0; i < bottom.children.length; i++) {
+        bottom.children[i].indexI = i;
+        for (var j = 0; j < bottom.children[i].children.length; j++) {
+            bottom.children[i].children[j].indexJ = j;
+            //右键标记地雷
+            var signCount = 0;
+            bottom.children[i].children[j].addEventListener("mouseup", function (e) {
+                if (e.button == 2) {  //右键
+                    //点击开启定时器计算时间
+                    if (flagClock) {
+                        time = setTime(clock);
+                        flagClock = false;
+                    }
+                    if (flag) {
+                        if (!(this.style.backgroundColor == "lightblue")) {
+//                            this.style.backgroundColor = "yellow";
+                            this.style.background="url('./images/icon.png') 30px 0";
+                            for (var k = 0; k < arr1.length; k++) {
+                                if (this == bottom.children[arr1[k]].children[arr2[k]]) {
+                                    if (count > 1) {
+                                        count--;
+                                        signCount++;
+                                    } else {
+                                        count = 0;
+                                        clearInterval(time);
+                                        flag = false;
+                                        alert("游戏结束");
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                var countTxt = document.querySelector("#count");
+                countTxt.innerHTML = count;
+            }, false);
+            var allCount = 0;
+            bottom.children[i].children[j].addEventListener("click", function () {
+                //点击开启定时器计算时间
+                if (flagClock) {
+                    time = setTime(clock);
+                    flagClock = false;
+                }
+                if (flag) {
+                    this.style.backgroundColor = "lightblue";
+                    allCount++;
+                    if (rowsText * colsText - allCount - signCount == count) {
+                        flag = false;
+                        alert("游戏结束");
+                        clearInterval(time);
+                    }
+                    //显示周围雷的个数
+                    var randCount = 0;
+                    var indexI = this.parentNode.indexI;
+                    var indexJ = this.indexJ;
+                    console.log(indexI, indexJ);
+
+                    //判断点到随机位置，则显示颜色
+                    for (var k = 0; k < arr1.length; k++) {
+                        //判断点击的格子周围炸弹数
+                        if (indexJ - 1 == arr2[k] && indexI == arr1[k]) {  //左
+                            randCount++;
+                        } else if (indexJ + 1 == arr2[k] && indexI == arr1[k]) {  //右
+                            randCount++;
+                        } else if (indexJ == arr2[k] && indexI - 1 == arr1[k]) {  //上
+                            randCount++;
+                        } else if (indexJ == arr2[k] && indexI + 1 == arr1[k]) {  //下
+                            randCount++;
+                        } else if (indexJ - 1 == arr2[k] && indexI - 1 == arr1[k]) { //左上
+                            randCount++;
+                        } else if (indexJ - 1 == arr2[k] && indexI + 1 == arr1[k]) { //左下
+                            randCount++;
+                        } else if (indexJ + 1 == arr2[k] && indexI - 1 == arr1[k]) { //右上
+                            randCount++;
+                        } else if (indexJ + 1 == arr2[k] && indexI + 1 == arr1[k]) { //右下
+                            randCount++;
+                        }
+                        this.innerText = randCount;
+
+                        if (this == bottom.children[arr1[k]].children[arr2[k]]) {
+//                            this.style.backgroundColor = "purple";
+                            this.style.background="url('./images/icon.png') 0 0";
+                            clearInterval(time);
+                            alert("踩到雷了");
+                            flag = false;
+                        }
+                    }
+                }
+            }, false);
+            //点击则开始计时
+
+            //消除浏览器右键默认选项
+            bottom.oncontextmenu = function () {
+                return false;
+            };
+        }
+    }
+}
+//计时器函数
+function setTime(clock) {
+    var hours = 0, minutes = 0, seconds = 0;
+    var time = null;
+    clearInterval(time);
+    time = setInterval(function () {
+        var str = "";
+        seconds++;
+        if (seconds == 60) {
+            minutes++;
+            seconds %= 60;
+            if (minutes == 60) {
+                hours++;
+                minutes %= 60;
+            }
+        }
+        str += hours < 10 ? "0" + hours : hours;
+        str += ":";
+        str += minutes < 10 ? "0" + minutes : minutes;
+        str += ":";
+        str += seconds < 10 ? "0" + seconds : seconds;
+        clock.innerHTML = str;
+    }, 1000);
+    return time;
+}
+</script>
+</html>
